@@ -61,8 +61,8 @@ if __name__ == '__main__':
         auto_enroll=True,
         verf_threhold=-0.1,
         model=model,
-        step=1.5,
-        duration=1.5,
+        step=2,
+        duration=2,
         # step=1,
         # duration=1,
         vad_config={
@@ -78,7 +78,7 @@ if __name__ == '__main__':
         metric_choice="eer",
         score_norm=True,
         threshold=1.38,
-        eer_collar=0.3,
+        eer_collar=0.5,
         # enroll_seg_len=4,
     )
     reader.score_pair_from_disk()

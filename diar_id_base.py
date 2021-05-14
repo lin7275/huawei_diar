@@ -76,6 +76,7 @@ class DiarWithID:
 
 
     def score_pair(self):
+        embed_cohort = self.prepare_cohort()
         for _, se in self.df.iterrows():
             data_test = self.prepare_test_sentence(se["test_wav_path"],
                                                    se["test_rttm_path"],
@@ -87,7 +88,6 @@ class DiarWithID:
             else:
                 embed_enroll = wav2embed(wavfile.read(se["enroll_wav_path"])[1],
                                          model=self.model, trans=self.trans)
-            embed_cohort = self.prepare_cohort()
             self.score_eer(embed_enroll, data_test, embed_cohort)
         comp_eer_sklearn(self.scores, self.labels)
 
@@ -154,7 +154,7 @@ class DiarWithID:
 
     def prepare_cohort(self):
         embed_cohort = []
-        for file in self.df_cohort.sample(30).files:
+        for file in self.df_cohort.sample(200).files:
             embed_cohort.append(
                 wav2embed(wavfile.read(file)[1], model=self.model, trans=self.trans)
             )

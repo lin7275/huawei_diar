@@ -29,6 +29,8 @@ class Reader(DiarWithID):
         embeds = get_embed_from_mfcc(se["test_mfcc_path"], self.model)
         groundtruth = load_rttm_single(se["test_groundtruth_path"])
         tl = load_rttm_single(se["test_segment_timeline_path"]).get_timeline()
+        for segment, _, label in groundtruth.itertracks(yield_label=True):
+            groundtruth[segment] = int(int(se['enroll_spk_id']) == int(label))
         return {
             "groundtruth": groundtruth,
             "tls_seg": tl,

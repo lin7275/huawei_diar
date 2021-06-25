@@ -154,7 +154,7 @@ class DiarWithID:
 
     def prepare_cohort(self):
         embed_cohort = []
-        for file in self.df_cohort.sample(200).files:
+        for file in self.df_cohort.sample(500).files:
             embed_cohort.append(
                 wav2embed(wavfile.read(file)[1], model=self.model, trans=self.trans)
             )

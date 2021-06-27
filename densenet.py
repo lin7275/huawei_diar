@@ -123,7 +123,7 @@ class DenseNet(nn.Module):
                  num_blocks,
                  n_classes=7323,
                  fbank_config={'n_mels': 80},
-                 specaug_config={'max_freq_mask_len': 27, 'max_time_mask_len': 100}},
+                 specaug_config={'max_freq_mask_len': 27, 'max_time_mask_len': 100},
                  activation='relu',
                  loss='amsoftmax',
                  m=0.35,

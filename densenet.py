@@ -138,8 +138,8 @@ class DenseNet(nn.Module):
         if fbank_config:
             trans.append(Fbank(**fbank_config))
             mfcc_dim = fbank_config['n_mels']
-        # if specaug_config:
-        #     trans.append(SpectrumAug(**specaug_config))
+        if specaug_config:
+            trans.append(SpectrumAug(**specaug_config))
         if trans:
             self.trans = nn.Sequential(*trans)
         else:

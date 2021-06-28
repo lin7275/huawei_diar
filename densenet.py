@@ -15,8 +15,100 @@ import torchaudio
 import torch
 import numpy as np
 
+
+class SpectrumAug(torch.nn.Module):
+    def __init__(self, max_freq_mask_len=27, max_time_mask_len=100, n_freq_mask=1):
+        super().__init__()
+        self.freq_masker = FrequencyMasking(
+            max_freq_mask_len, iid_masks=True, n_freq_mask=n_freq_mask
+        )
+        self.time_masker = TimeMasking(max_time_mask_len, iid_masks=True)
+
+    def forward(self, spectrum):
+        if self.training:
+            return self.time_masker(self.freq_masker(spectrum[:, None, ...])).squeeze()
+        else:
+            return spectrum
+
+
+class _AxisMasking(torch.nn.Module):
+    def __init__(self, mask_param, axis, iid_masks, n_mask=1):
+        super().__init__()
+        self.mask_param = mask_param
+        self.axis = axis
+        self.iid_masks = iid_masks
+        self.n_mask = n_mask
+
+    def forward(self, specgram, mask_value=0.0):
+        if self.iid_masks and specgram.dim() == 4:
+            for _ in range(self.n_mask):
+                specgram = mask_along_axis_iid(
+                    specgram, self.mask_param, mask_value, self.axis + 1
+                )
+            return specgram
+        else:
+            return NotImplementedError
+
+
+class FrequencyMasking(_AxisMasking):
+    def __init__(self, freq_mask_param, iid_masks, n_freq_mask):
+        super(FrequencyMasking, self).__init__(
+            freq_mask_param, 1, iid_masks, n_mask=n_freq_mask
+        )
+
+
+class TimeMasking(_AxisMasking):
+    def __init__(self, time_mask_param: int, iid_masks: bool = False) -> None:
+        super(TimeMasking, self).__init__(time_mask_param, 2, iid_masks)
+
+
+def mask_along_axis_iid(
+    specgrams,
+    mask_param,
+    mask_value,
+    axis,
+):
+
+    if axis != 2 and axis != 3:
+        raise ValueError("Only Frequency and Time masking are supported")
+
+    value = torch.rand(specgrams.shape[:2]) * mask_param
+    min_value = torch.rand(specgrams.shape[:2]) * (specgrams.size(axis) - value)
+
+    # Create broadcastable mask
+    mask_start = (min_value.long())[..., None, None].float()
+    mask_end = (min_value.long() + value.long())[..., None, None].float()
+    mask = torch.arange(0, specgrams.size(axis)).float()
+
+    # Per batch example masking
+    specgrams = specgrams.transpose(axis, -1)
+    specgrams.masked_fill_(
+        (mask >= mask_start).cuda() & (mask < mask_end).cuda(), mask_value
+    )
+    specgrams = specgrams.transpose(axis, -1)
+
+    return specgrams
+
+
+
+# Todo implement double masking for freq
+class SpectrumAug(torch.nn.Module):
+    def __init__(self, max_freq_mask_len=27, max_time_mask_len=100, n_freq_mask=1):
+        super().__init__()
+        self.freq_masker = FrequencyMasking(
+            max_freq_mask_len, iid_masks=True, n_freq_mask=n_freq_mask
+        )
+        self.time_masker = TimeMasking(max_time_mask_len, iid_masks=True)
+
+    def forward(self, spectrum):
+        if self.training:
+            return self.time_masker(self.freq_masker(spectrum[:, None, ...])).squeeze()
+        else:
+            return spectrum
+
+
 class Fbank(torch.nn.Module):
-    def __init__(self, n_mels, sample_rate, **kwargs):
+    def __init__(self, n_mels, sample_rate=16000, **kwargs):
         super(Fbank, self).__init__()
         self.n_mels = n_mels
         self.MelSpectrogram = torchaudio.transforms.MelSpectrogram(
@@ -129,7 +221,7 @@ class DenseNet(nn.Module):
                  m=0.35,
                  use_wav=False,
                  two_layer_fc=False,
-                 mfcc_dim=40, embedding_size=256,
+                 mfcc_dim=80, embedding_size=256,
                  growth_rate=90, reduction=0.5):
         super(DenseNet, self).__init__()
         self.growth_rate = growth_rate

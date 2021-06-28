@@ -42,7 +42,8 @@ def segment_wav_and_get_embed(wav_file, model, trans, vad_config, win_config,
 def wav2embed(wav, model, trans, return_mfcc=False):
     mfcc = trans(wav)
     with torch.no_grad():
-        mfcc = torch.tensor(mfcc[None, :]).cuda()
+        # mfcc = torch.tensor(mfcc[None, :]).cuda()
+        mfcc = mfcc[None, :].cuda()
         embed = model.extract(mfcc).to("cpu").numpy()
     if return_mfcc:
         return mfcc

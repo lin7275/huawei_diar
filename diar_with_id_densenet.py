@@ -1,10 +1,8 @@
-import pandas as pd
-
 from diar_id_base import DiarWithID
 import torch
 from utils import my_load_rttm, load_rttm_single
 from utils import get_embed_from_mfcc, comp_eer_sklearn
-
+import pandas as pd
 
 class Reader(DiarWithID):
     def score_pair_from_disk(self, save2):
@@ -18,6 +16,7 @@ class Reader(DiarWithID):
             #     print('skip')
             #     continue
             data_test = self.read_test_data_from_disk(se)
+            # embed_cohort = self.prepare_cohort()
             # embed_cohort = None
             self.score_eer(embed_enroll, data_test, embed_cohort)
 
@@ -48,19 +47,27 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--model_file', required=True)
     parser.add_argument('-t', '--tsv_file', required=True)
     parser.add_argument('-c', '--cohort_file', required=True)
-    parser.add_argument('-s', '--save_score_to', default='scores_resnet.tsv')
+    parser.add_argument('-s', '--save_score_to', default='scores_densenet.tsv')
     args = parser.parse_args()
 
-    from new_resnet import resnet101
+    from densenet import DenseNet121
     checkpoint = torch.load(args.model_file, map_location="cpu")
 
-    model = resnet101(n_classes=7323)
-    model.load_state_dict(checkpoint['model_state_dict'])
+    import torch.nn as nn
+    class Identity(nn.Module):
+        def __init__(self):
+            super(Identity, self).__init__()
 
+        def forward(self, x):
+            return x
+
+    model = DenseNet121(n_classes=7323)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.trans = Identity()
+    model.eval()
     # trans =
 
     model = model.cuda()
-    model = model.eval()
     reader = Reader(
         trans=KaldiFbank(sample_frequency=16000, num_mel_bins=80),
         # tsv_file="/home8a/wwlin/corpus/respk_clean/all_new_clean_double_cluster_libsph.tsv",
